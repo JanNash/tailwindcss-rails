@@ -4,7 +4,9 @@ namespace :tailwindcss do
     debug = args.extras.include?("debug")
     verbose = args.extras.include?("verbose")
 
-    command = Tailwindcss::Commands.compile_command(debug: debug)
+    namespace = get_namespace_from_extras(args.extras)
+
+    command = Tailwindcss::Commands.compile_command(debug: debug, namespace: namespace)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
     puts "Running: #{Shellwords.join(command)}" if verbose
 
@@ -18,13 +20,24 @@ namespace :tailwindcss do
     always = args.extras.include?("always")
     verbose = args.extras.include?("verbose")
 
-    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, poll: poll)
+    namespace = get_namespace_from_extras(args.extras)
+
+    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, namespace: namespace, poll: poll)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
     puts "Running: #{Shellwords.join(command)}" if verbose
 
     system(env, *command)
   rescue Interrupt
     puts "Received interrupt, exiting tailwindcss:watch" if args.extras.include?("verbose")
+  end
+
+  private
+
+  def get_namespace_from_extras(extras)
+    namespace_key_and_value = extras.detect{ |a| a.start_with?('namespace=') }
+    if namespace_key_and_value != nil
+      namespace_key_and_value.split('=')[1]
+    end
   end
 end
 
