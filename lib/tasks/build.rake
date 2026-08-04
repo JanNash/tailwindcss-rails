@@ -23,7 +23,7 @@ namespace :tailwindcss do
 
     namespace = get_namespace_from_extras(args.extras)
 
-    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, silent: silent, namespace: namespace, poll: poll)
+    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, silent: silent, namespace: namespace)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
     puts "Running: #{Shellwords.join(command)}" if verbose
 
