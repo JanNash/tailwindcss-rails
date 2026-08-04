@@ -5,7 +5,7 @@ namespace :tailwindcss do
     silent = args.extras.include?("silent")
     verbose = args.extras.include?("verbose")
 
-    namespace = get_namespace_from_extras(args.extras)
+    namespace = get_namespace_from_env
 
     command = Tailwindcss::Commands.compile_command(debug: debug, silent: silent, namespace: namespace)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
@@ -21,7 +21,7 @@ namespace :tailwindcss do
     silent = args.extras.include?("silent")
     verbose = args.extras.include?("verbose")
 
-    namespace = get_namespace_from_extras(args.extras)
+    namespace = get_namespace_from_env
 
     command = Tailwindcss::Commands.watch_command(always: always, debug: debug, silent: silent, namespace: namespace)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
@@ -38,11 +38,10 @@ namespace :tailwindcss do
 
   private
 
-  def get_namespace_from_extras(extras)
-    namespace_key_and_value = extras.detect{ |a| a.start_with?('namespace=') }
-    if namespace_key_and_value != nil
-      namespace_key_and_value.split('=')[1]
-    end
+  def get_namespace_from_env
+    namespace_value = ENV['tailwindnamespace']
+    puts "Found tailwindnamespace: #{namespace_value}"
+    return namespace_value
   end
 end
 
