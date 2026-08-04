@@ -1,12 +1,13 @@
 namespace :tailwindcss do
   desc "Build your Tailwind CSS"
-  task build: :environment do |_, args|
+  task build: [:environment, :engines] do |_, args|
     debug = args.extras.include?("debug")
+    silent = args.extras.include?("silent")
     verbose = args.extras.include?("verbose")
 
     namespace = get_namespace_from_extras(args.extras)
 
-    command = Tailwindcss::Commands.compile_command(debug: debug, namespace: namespace)
+    command = Tailwindcss::Commands.compile_command(debug: debug, silent: silent, namespace: namespace)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
     puts "Running: #{Shellwords.join(command)}" if verbose
 
@@ -14,21 +15,25 @@ namespace :tailwindcss do
   end
 
   desc "Watch and build your Tailwind CSS on file changes"
-  task watch: :environment do |_, args|
+  task watch: [:environment, :engines] do |_, args|
     debug = args.extras.include?("debug")
-    poll = args.extras.include?("poll")
     always = args.extras.include?("always")
+    silent = args.extras.include?("silent")
     verbose = args.extras.include?("verbose")
 
     namespace = get_namespace_from_extras(args.extras)
 
-    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, namespace: namespace, poll: poll)
+    command = Tailwindcss::Commands.watch_command(always: always, debug: debug, silent: silent, namespace: namespace, poll: poll)
     env = Tailwindcss::Commands.command_env(verbose: verbose)
     puts "Running: #{Shellwords.join(command)}" if verbose
 
-    system(env, *command)
-  rescue Interrupt
-    puts "Received interrupt, exiting tailwindcss:watch" if args.extras.include?("verbose")
+    received_signal = Tailwindcss::ProcessRunner.spawn_and_wait(env, *command)
+    puts "Received #{received_signal}, exiting tailwindcss:watch" if verbose && received_signal
+  end
+
+  desc "Create Tailwind CSS entry point files for Rails Engines"
+  task engines: :environment do
+    Tailwindcss::Engines.bundle
   end
 
   private

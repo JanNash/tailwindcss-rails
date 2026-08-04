@@ -10,26 +10,33 @@ on:
     types: [opened, synchronize]
     branches:
       - '*'
+env:
+  GEM_HOME: ${{ github.workspace }}/.gem # Needs to be a writable directory to bundle remove/add
+
+permissions: {}
 
 jobs:
   tests:
     name: "tests (rails main)"
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["3.3"]
+        ruby: ["4.0"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
         with:
           ruby-version: ${{matrix.ruby}}
       - run: |
           rm Gemfile.lock
           bundle remove actionmailer
           git clone --depth 1 --branch main https://github.com/rails/rails
-          bundle add actionmailer --path=rails
-          bundle add railties --path=rails
+          bundle add rails --path=rails --skip-install
           bundle install
       - name: Run tests
         run: bin/test
@@ -37,18 +44,22 @@ jobs:
   user-install:
     name: "user-install (rails ${{ matrix.ref }})"
     runs-on: ${{matrix.plat}}-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         plat: ["ubuntu"]
-        ref: ["7-2-stable", "8-0-stable", "main"]
+        ref: ["7-2-stable", "8-0-stable", "8-1-stable", "main"]
     env:
       RAILSOPTS: --git=https://github.com/rails/rails --ref=${{ matrix.ref }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ruby-version: "3.3"
+          persist-credentials: false
+      - uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+        with:
+          ruby-version: "4.0"
           bundler: latest
       - run: test/integration/user_install_test.sh
         shell: bash
@@ -56,18 +67,22 @@ jobs:
   user-upgrade:
     name: "user-upgrade (rails ${{ matrix.ref }})"
     runs-on: ${{matrix.plat}}-latest
+    permissions:
+      contents: read
     strategy:
       fail-fast: false
       matrix:
         plat: ["ubuntu"]
-        ref: ["7-2-stable", "8-0-stable", "main"]
+        ref: ["7-2-stable", "8-0-stable", "8-1-stable", "main"]
     env:
       RAILSOPTS: --git=https://github.com/rails/rails --ref=${{ matrix.ref }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: ruby/setup-ruby@v1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ruby-version: "3.3"
+          persist-credentials: false
+      - uses: ruby/setup-ruby@a30dfa457ad68707b8b910ac3a244714b61c0626 # v1.320.0
+        with:
+          ruby-version: "4.0"
           bundler: latest
       - run: test/integration/user_upgrade_test.sh
         shell: bash

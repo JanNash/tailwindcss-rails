@@ -1,5 +1,41 @@
 # `tailwindcss-rails` Changelog
 
+## v4.6.0 / 2026-06-17
+
+### Fixed
+
+* `tailwindcss:watch` now forwards stop signals (`SIGINT`/`SIGTERM`) to the spawned `tailwindcss` process, instead of letting it be orphaned. This happens when a process manager signals the watch task directly rather than the whole process group — most commonly Procfile-based managers like foreman in development. @jordan-brough
+
+
+## v4.5.0 / 2026-06-15
+
+### Improved
+
+* New `silent` flag on `tailwindcss:build` and `tailwindcss:watch` tasks to suppress non-error output from the tailwindcss CLI (e.g., `bin/rails tailwindcss:watch[silent]`). Requires Tailwind CSS v4.3.1. #618 @jordan-brough
+
+
+## v4.4.0 / 2025-10-27
+
+### Changed
+
+* Removed the "poll" option on the watch command, since Tailwind v4 dropped support for this option (and it has been a no-op in this gem since.) #580 @flavorjones
+
+
+### Improved
+
+* Support Rails 8.1 scaffolding which disables system tests by default. #585 @flavorjones
+* Puma plugin now has experimental support for Rails engines. #567 @bopm
+* Puma plugin uses Puma 7's `after_stopped` callback, quashing a deprecation warning. #578 @rono23
+
+
+## v4.3.0 / 2025-07-06
+
+### Improved
+
+* Experimental support for Rails engines. Feedback is welcome at #355. #554, #556 @bopm
+* Gracefully handle application created with `--skip-system-test`. #559, #562 @flavorjones
+
+
 ## v4.2.3 / 2025-05-02
 
 ### Improved

@@ -5,40 +5,55 @@
 set -o pipefail
 set -eux
 
-# set up dependencies
-rm -f Gemfile.lock
-bundle remove actionmailer || true
-bundle remove rails || true
+ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
+WORKDIR="$ROOT/tmp/integration-user-install"
+
+rm -rf "$WORKDIR"
+mkdir -p "$WORKDIR"
+pushd "$WORKDIR"
+
+# set up dependencies in a fresh Gemfile
+gem install bcrypt # it's complicated, see Rails 7549ba77. can probably be removed once Rails 8.0 is EOL.
+cat > Gemfile <<EOF
+source "https://rubygems.org"
+EOF
 bundle add rails --skip-install ${RAILSOPTS:-}
 bundle install --prefer-local
+bundle exec rails -v
 
-# do our work a directory with spaces in the name (#176, #184)
-rm -rf "My Workspace"
+# do our work in a directory with spaces in the name (#176, #184)
 mkdir "My Workspace"
 pushd "My Workspace"
 
-# create a rails app
-bundle exec rails -v
+function prepare_deps {
+  # make sure to use the same version of rails (e.g., install from git source if necessary)
+  bundle remove rails --skip-install
+  rm -f Gemfile.lock
+  bundle add rails --skip-install ${RAILSOPTS:-}
+
+  # use the tailwindcss-rails under test
+  bundle add tailwindcss-rails --skip-install --path="$ROOT"
+  bundle add tailwindcss-ruby --skip-install ${TAILWINDCSSOPTS:-}
+  bundle install --prefer-local
+  bundle show --paths | fgrep tailwind
+  bundle binstubs --all
+}
+
+function install_tailwindcss {
+  # install tailwindcss
+  bin/rails tailwindcss:install
+
+  # TEST: tailwind was installed correctly
+  grep -q "<main class=\"container" app/views/layouts/application.html.erb
+  test -a app/assets/tailwind/application.css
+}
+
+# Application variation #1 ----------------------------------------
 bundle exec rails new test-install --skip-bundle
 pushd test-install
 
-# make sure to use the same version of rails (e.g., install from git source if necessary)
-bundle remove rails --skip-install
-bundle add rails --skip-install ${RAILSOPTS:-}
-
-# use the tailwindcss-rails under test
-bundle add tailwindcss-rails --skip-install --path="../.."
-bundle add tailwindcss-ruby --skip-install ${TAILWINDCSSOPTS:-}
-bundle install --prefer-local
-bundle show --paths | fgrep tailwind
-bundle binstubs --all
-
-# install tailwindcss
-bin/rails tailwindcss:install
-
-# TEST: tailwind was installed correctly
-grep -q "<main class=\"container" app/views/layouts/application.html.erb
-test -a app/assets/tailwind/application.css
+prepare_deps
+install_tailwindcss
 
 # TEST: rake tasks don't exec (#188)
 cat <<EOF >> Rakefile
@@ -59,8 +74,12 @@ if [[ $(rails -v) > "Rails 8.0.0.beta" ]] ; then
   grep -q PasswordsController app/controllers/passwords_controller.rb
 fi
 
+# TEST: doesn't fail when not generating system tests
+bin/rails generate scaffold memo title:string body:text published:boolean --system-tests=false
+grep -q "Show" app/views/memos/index.html.erb
+
 # TEST: presence of the generated file
-bin/rails generate scaffold post title:string body:text published:boolean
+bin/rails generate scaffold post title:string body:text published:boolean --system-tests=true
 grep -q "Show" app/views/posts/index.html.erb
 
 # TEST: the "accept_confirm" system test change was applied cleanly
@@ -72,5 +91,18 @@ grep -q "py-2" app/assets/builds/tailwind.css
 
 # TEST: contents include application.css directives
 grep -q "#abc12399" app/assets/builds/tailwind.css
+
+# Application variation #2 ----------------------------------------
+popd
+bundle exec rails new test-install2 --skip-bundle --skip-system-test
+pushd test-install2
+
+prepare_deps
+install_tailwindcss
+
+# TEST: presence of the generated file
+# TEST: nothing blew up without system tests, https://github.com/rails/tailwindcss-rails/issues/559
+bin/rails generate scaffold post title:string body:text published:boolean
+grep -q "Show" app/views/posts/index.html.erb
 
 echo "OK"

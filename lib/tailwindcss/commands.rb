@@ -3,7 +3,7 @@ require "tailwindcss/ruby"
 module Tailwindcss
   module Commands
     class << self
-      def compile_command(debug: false, namespace: nil, **kwargs)
+      def compile_command(debug: false, silent: false, namespace: nil, **kwargs)
         debug = ENV["TAILWINDCSS_DEBUG"].present? if ENV.key?("TAILWINDCSS_DEBUG")
         rails_root = defined?(Rails) ? Rails.root : Pathname.new(Dir.pwd)
 
@@ -16,6 +16,7 @@ module Tailwindcss
         ]
 
         command << "--minify" unless (debug || rails_css_compressor?)
+        command << "--silent" if silent
 
         postcss_path = rails_root.join("postcss.config.js")
         command += ["--postcss", postcss_path.to_s] if File.exist?(postcss_path)
@@ -23,11 +24,10 @@ module Tailwindcss
         command
       end
 
-      def watch_command(always: false, poll: false, **kwargs)
+      def watch_command(always: false, **kwargs)
         compile_command(**kwargs).tap do |command|
           command << "-w"
           command << "always" if always
-          command << "-p" if poll
         end
       end
 

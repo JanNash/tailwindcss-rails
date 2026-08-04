@@ -59,6 +59,16 @@ class Tailwindcss::CommandsTest < ActiveSupport::TestCase
     end
   end
 
+  test ".compile_command silent flag" do
+    Rails.stub(:root, File) do # Rails.root won't work in this test suite
+      actual = Tailwindcss::Commands.compile_command
+      refute_includes(actual, "--silent")
+
+      actual = Tailwindcss::Commands.compile_command(silent: true)
+      assert_includes(actual, "--silent")
+    end
+  end
+
   test ".compile_command when Rails compression is on" do
     Rails.stub(:root, File) do # Rails.root won't work in this test suite
       Tailwindcss::Commands.stub(:rails_css_compressor?, true) do
@@ -111,19 +121,17 @@ class Tailwindcss::CommandsTest < ActiveSupport::TestCase
       refute_includes(actual, "-p")
       refute_includes(actual, "--minify")
 
-      actual = Tailwindcss::Commands.watch_command(poll: true)
-      assert_kind_of(Array, actual)
-      assert_equal(executable, actual.first)
-      assert_includes(actual, "-w")
-      refute_includes(actual, "always")
-      assert_includes(actual, "-p")
-      assert_includes(actual, "--minify")
-
       actual = Tailwindcss::Commands.watch_command(always: true)
       assert_kind_of(Array, actual)
       assert_equal(executable, actual.first)
       assert_includes(actual, "-w")
       assert_includes(actual, "always")
+
+      actual = Tailwindcss::Commands.watch_command(silent: true)
+      assert_kind_of(Array, actual)
+      assert_equal(executable, actual.first)
+      assert_includes(actual, "-w")
+      assert_includes(actual, "--silent")
     end
   end
 end

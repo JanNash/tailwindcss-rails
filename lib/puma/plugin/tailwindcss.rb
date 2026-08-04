@@ -13,14 +13,18 @@ Puma::Plugin.create do
       # If we use system(*command) instead, IRB and Debug can't read from $stdin
       # correctly bacause some keystrokes will be taken by watch_command.
       begin
-        IO.popen(Tailwindcss::Commands.watch_command, 'r+') do |io|
+        IO.popen(['bin/rails', 'tailwindcss:watch'], 'r+') do |io|
           IO.copy_stream(io, $stdout)
         end
       rescue Interrupt
       end
     end
 
-    launcher.events.on_stopped { stop_tailwind }
+    if Gem::Version.new(Puma::Const::PUMA_VERSION) >= Gem::Version.new("7")
+      launcher.events.after_stopped { stop_tailwind }
+    else
+      launcher.events.on_stopped { stop_tailwind }
+    end
 
     in_background do
       monitor_tailwind
